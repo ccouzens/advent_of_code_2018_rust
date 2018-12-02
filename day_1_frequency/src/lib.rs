@@ -5,16 +5,17 @@ pub fn frequency(input: &'static str) -> i32 {
 pub fn repeated_frequency(input: &'static str) -> i32 {
     let mut seen = std::collections::HashSet::new();
     let mut cumulative_sum = 0;
-    for num in numbers_iterator(input).cycle() {
-        if !seen.insert(cumulative_sum) {
-            return cumulative_sum;
+    loop {
+        for num in numbers_iterator(input) {
+            if !seen.insert(cumulative_sum) {
+                return cumulative_sum;
+            }
+            cumulative_sum += num;
         }
-        cumulative_sum += num;
     }
-    panic!("should not reach");
 }
 
-fn numbers_iterator(input: &'static str) -> NumberIterator {
+fn numbers_iterator(input: &'static str) -> impl Iterator<Item = i32> + Clone {
     NumberIterator {
         chars: input.chars().peekable(),
     }
