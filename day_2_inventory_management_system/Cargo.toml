@@ -1,0 +1,6 @@
+[package]
+name = "day_2_inventory_management_system"
+version = "0.1.0"
+authors = ["Chris Couzens <ccouzens@gmail.com>"]
+
+[dependencies]
