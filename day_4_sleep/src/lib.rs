@@ -35,6 +35,24 @@ pub fn most_asleep_minute(input: &str, guard_id: u16) -> Option<u8> {
         .map(|(&minute, _time)| minute)
 }
 
+pub fn most_consistently_asleep_guard(input: &str) -> Option<u16> {
+    let nights = parse_nights(input);
+    let mut guard_minutes: HashMap<(u16, u8), i32> = HashMap::new();
+    for night in nights.iter() {
+        for (minute, &asleep) in night.sleeps.iter().enumerate() {
+            if asleep {
+                *guard_minutes
+                    .entry((night.guard_id, minute as u8))
+                    .or_insert(0) += 1;
+            }
+        }
+    }
+    guard_minutes
+        .iter()
+        .max_by_key(|(_guard_minute, &time)| time)
+        .map(|(guard_minute, _time)| guard_minute.0)
+}
+
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
 enum Event {
     Begin { guard_id: u16 },
@@ -82,15 +100,13 @@ fn parse_nights(input: &str) -> Vec<Night> {
     let mut fall_asleep = 0;
     for record in records.drain(..) {
         match record.event {
-            Event::Begin {
-                guard_id: r_guard_id,
-            } => {
+            Event::Begin { guard_id } => {
                 if let Some(night) = some_night {
                     nights.push(night);
                 }
                 some_night = Some(Night {
                     date: record.night_of(),
-                    guard_id: r_guard_id,
+                    guard_id,
                     sleeps: (0..60).map(|_minute| false).collect(),
                 });
             }
@@ -174,7 +190,16 @@ mod tests {
     }
 
     #[test]
-    fn puzzle() {
+    fn most_consistently_asleep_guard_test() {
+        use most_consistently_asleep_guard;
+        assert_eq!(
+            most_consistently_asleep_guard(include_str!("../example.txt")),
+            Some(99)
+        );
+    }
+
+    #[test]
+    fn puzzle_one() {
         static GUARD_ID: u16 = 3209;
         static ASLEEP_MINUTE: u8 = 32;
 
@@ -192,4 +217,25 @@ mod tests {
 
         assert_eq!(GUARD_ID as u32 * ASLEEP_MINUTE as u32, 102688);
     }
+
+    #[test]
+    fn puzzle_two() {
+        static GUARD_ID: u16 = 1459;
+        static ASLEEP_MINUTE: u8 = 39;
+
+        use most_consistently_asleep_guard;
+        assert_eq!(
+            most_consistently_asleep_guard(include_str!("../input.txt")),
+            Some(GUARD_ID)
+        );
+
+        use most_asleep_minute;
+        assert_eq!(
+            most_asleep_minute(include_str!("../input.txt"), GUARD_ID),
+            Some(ASLEEP_MINUTE)
+        );
+
+        assert_eq!(GUARD_ID as u32 * ASLEEP_MINUTE as u32, 56901);
+    }
+
 }
