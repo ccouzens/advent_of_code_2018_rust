@@ -37,7 +37,7 @@ pub fn most_asleep_minute(input: &str, guard_id: u16) -> Option<u8> {
 
 pub fn most_consistently_asleep_guard(input: &str) -> Option<u16> {
     let nights = parse_nights(input);
-    let mut guard_minutes: HashMap<(u16, u8), i32> = HashMap::new();
+    let mut guard_minutes = HashMap::new();
     for night in nights.iter() {
         for (minute, &asleep) in night.sleeps.iter().enumerate() {
             if asleep {
