@@ -1,0 +1,6 @@
+[package]
+name = "day_4_sleep"
+version = "0.1.0"
+authors = ["Chris Couzens <ccouzens@gmail.com>"]
+
+[dependencies]
