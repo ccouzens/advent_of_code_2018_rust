@@ -1,15 +1,15 @@
-pub fn fully_react(input: &str) -> String {
-    let mut reacted = String::with_capacity(input.len());
-    for b in input.chars() {
+pub fn fully_react<T: Iterator<Item = char>>(input: T) -> String {
+    let mut reacted = String::new();
+    for b in input {
         let last = reacted.pop();
-        match (last, b) {
-            (Some(a), b) => {
+        match last {
+            Some(a) => {
                 if !letters_react(a, b) {
                     reacted.push(a);
                     reacted.push(b);
                 }
             }
-            (None, b) => {
+            None => {
                 reacted.push(b);
             }
         }
@@ -17,15 +17,16 @@ pub fn fully_react(input: &str) -> String {
     reacted
 }
 
-pub fn improved_react(input: &str) -> Option<String> {
+pub fn improved_react(input: &str) -> String {
     (b'a'..=b'z')
         .map(|l| {
-            input
-                .chars()
-                .filter(|t| t.to_ascii_lowercase() != l as char)
-                .collect::<String>()
-        }).map(|filtered| fully_react(&filtered))
-        .min_by_key(|reacted| reacted.len())
+            fully_react(
+                input
+                    .chars()
+                    .filter(|t| t.to_ascii_lowercase() != l as char),
+            )
+        }).min_by_key(|reacted| reacted.len())
+        .unwrap()
 }
 
 fn letters_react(a: char, b: char) -> bool {
@@ -38,13 +39,19 @@ mod fully_react {
 
     #[test]
     fn worked_example() {
-        assert_eq!(fully_react("dabAcCaCBAcCcaDA"), "dabCBAcaDA".to_string());
-        assert_eq!(fully_react("dabAcCaCBAcCcaDA").len(), 10);
+        assert_eq!(
+            fully_react("dabAcCaCBAcCcaDA".chars()),
+            "dabCBAcaDA".to_string()
+        );
+        assert_eq!(fully_react("dabAcCaCBAcCcaDA".chars()).len(), 10);
     }
 
     #[test]
     fn puzzle() {
-        assert_eq!(fully_react(include_str!("../input.txt").trim()).len(), 9386);
+        assert_eq!(
+            fully_react(include_str!("../input.txt").trim().chars()).len(),
+            9386
+        );
     }
 }
 
@@ -54,15 +61,15 @@ mod improved_react {
 
     #[test]
     fn worked_example() {
-        assert_eq!(improved_react("dabAcCaCBAcCcaDA"), Some("daDA".to_string()));
-        assert_eq!(improved_react("dabAcCaCBAcCcaDA").map(|r| r.len()), Some(4));
+        assert_eq!(improved_react("dabAcCaCBAcCcaDA"), "daDA".to_string());
+        assert_eq!(improved_react("dabAcCaCBAcCcaDA").len(), 4);
     }
 
     #[test]
     fn puzzle() {
         assert_eq!(
-            improved_react(include_str!("../input.txt").trim()).map(|r| r.len()),
-            Some(4876)
+            improved_react(include_str!("../input.txt").trim()).len(),
+            4876
         );
     }
 }
