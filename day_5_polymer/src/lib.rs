@@ -1,11 +1,20 @@
 pub fn fully_react(input: &str) -> String {
-    let mut length = input.len();
-    let mut partial: String = ReactIterator::new(input).collect();
-    while length != partial.len() {
-        length = partial.len();
-        partial = ReactIterator::new(&partial).collect();
+    let mut reacted = String::with_capacity(input.len());
+    for b in input.chars() {
+        let last = reacted.pop();
+        match (last, b) {
+            (Some(a), b) => {
+                if !letters_react(a, b) {
+                    reacted.push(a);
+                    reacted.push(b);
+                }
+            }
+            (None, b) => {
+                reacted.push(b);
+            }
+        }
     }
-    partial
+    reacted
 }
 
 pub fn improved_react(input: &str) -> Option<String> {
@@ -19,51 +28,8 @@ pub fn improved_react(input: &str) -> Option<String> {
         .min_by_key(|reacted| reacted.len())
 }
 
-struct ReactIterator<'a> {
-    input: std::str::Chars<'a>,
-    last_character: Option<char>,
-}
-
-impl<'a> ReactIterator<'a> {
-    fn new(input: &'a str) -> ReactIterator {
-        ReactIterator {
-            input: input.chars(),
-            last_character: None,
-        }
-    }
-}
-
 fn letters_react(a: char, b: char) -> bool {
-    a.is_ascii_uppercase() && b.is_ascii_lowercase() && a.to_ascii_lowercase() == b
-        || a.is_ascii_lowercase() && b.is_ascii_uppercase() && a.to_ascii_uppercase() == b
-}
-
-impl<'a> Iterator for ReactIterator<'a> {
-    type Item = char;
-
-    fn next(&mut self) -> Option<char> {
-        loop {
-            let current = self.input.next();
-            match (self.last_character, current) {
-                (Some(a), Some(b)) => {
-                    if letters_react(a, b) {
-                        self.last_character = None;
-                    } else {
-                        self.last_character = Some(b);
-                        return Some(a);
-                    }
-                }
-                (Some(a), None) => {
-                    self.last_character = None;
-                    return Some(a);
-                }
-                (None, Some(b)) => {
-                    self.last_character = Some(b);
-                }
-                (None, None) => return None,
-            }
-        }
-    }
+    a != b && a.to_ascii_lowercase() == b.to_ascii_lowercase()
 }
 
 #[cfg(test)]
