@@ -31,26 +31,26 @@ impl<'a> Iterator for ReactIterator<'a> {
     type Item = char;
 
     fn next(&mut self) -> Option<char> {
-        let current = self.input.next();
-        match (self.last_character, current) {
-            (Some(a), Some(b)) => {
-                if letters_react(a, b) {
-                    self.last_character = None;
-                    self.next()
-                } else {
-                    self.last_character = Some(b);
-                    Some(a)
+        loop {
+            let current = self.input.next();
+            match (self.last_character, current) {
+                (Some(a), Some(b)) => {
+                    if letters_react(a, b) {
+                        self.last_character = None;
+                    } else {
+                        self.last_character = Some(b);
+                        return Some(a);
+                    }
                 }
+                (Some(a), None) => {
+                    self.last_character = None;
+                    return Some(a);
+                }
+                (None, Some(b)) => {
+                    self.last_character = Some(b);
+                }
+                (None, None) => return None,
             }
-            (Some(a), None) => {
-                self.last_character = None;
-                Some(a)
-            }
-            (None, Some(b)) => {
-                self.last_character = Some(b);
-                self.next()
-            }
-            (None, None) => None,
         }
     }
 }
