@@ -1,11 +1,22 @@
 pub fn fully_react(input: &str) -> String {
+    let mut length = input.len();
     let mut partial: String = ReactIterator::new(input).collect();
-    let mut length = None;
-    while length != Some(partial.len()) {
-        length = Some(partial.len());
+    while length != partial.len() {
+        length = partial.len();
         partial = ReactIterator::new(&partial).collect();
     }
     partial
+}
+
+pub fn improved_react(input: &str) -> Option<String> {
+    (b'a'..=b'z')
+        .map(|l| {
+            input
+                .chars()
+                .filter(|t| t.to_ascii_lowercase() != l as char)
+                .collect::<String>()
+        }).map(|filtered| fully_react(&filtered))
+        .min_by_key(|reacted| reacted.len())
 }
 
 struct ReactIterator<'a> {
@@ -61,11 +72,31 @@ mod fully_react {
 
     #[test]
     fn worked_example() {
+        assert_eq!(fully_react("dabAcCaCBAcCcaDA"), "dabCBAcaDA".to_string());
         assert_eq!(fully_react("dabAcCaCBAcCcaDA").len(), 10);
     }
 
     #[test]
     fn puzzle() {
         assert_eq!(fully_react(include_str!("../input.txt").trim()).len(), 9386);
+    }
+}
+
+#[cfg(test)]
+mod improved_react {
+    use improved_react;
+
+    #[test]
+    fn worked_example() {
+        assert_eq!(improved_react("dabAcCaCBAcCcaDA"), Some("daDA".to_string()));
+        assert_eq!(improved_react("dabAcCaCBAcCcaDA").map(|r| r.len()), Some(4));
+    }
+
+    #[test]
+    fn puzzle() {
+        assert_eq!(
+            improved_react(include_str!("../input.txt").trim()).map(|r| r.len()),
+            Some(4876)
+        );
     }
 }
