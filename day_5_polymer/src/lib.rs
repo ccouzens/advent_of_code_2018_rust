@@ -1,8 +1,7 @@
 pub fn fully_react<T: Iterator<Item = char>>(input: T) -> String {
     let mut reacted = String::new();
     for b in input {
-        let last = reacted.pop();
-        match last {
+        match reacted.pop() {
             Some(a) => {
                 if !letters_react(a, b) {
                     reacted.push(a);
@@ -26,7 +25,7 @@ pub fn improved_react(input: &str) -> String {
                     .filter(|t| t.to_ascii_lowercase() != l as char),
             )
         }).min_by_key(|reacted| reacted.len())
-        .unwrap()
+        .unwrap_or_else(String::new)
 }
 
 fn letters_react(a: char, b: char) -> bool {
