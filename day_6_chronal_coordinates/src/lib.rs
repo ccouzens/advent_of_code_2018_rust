@@ -11,6 +11,18 @@ pub fn largest_finite(input: &str) -> usize {
         .unwrap_or(0)
 }
 
+pub fn cluster_size(input: &str, within: i16) -> usize {
+    let coordinates = parse_coordinates(input);
+
+    if let Some(center) = Coordinate::manhattan_center(coordinates.iter()) {
+        center.expanding_search(|s, _search_distance| {
+            s.distance_between_all_others(coordinates.iter()) < within
+        })
+    } else {
+        0
+    }
+}
+
 #[derive(Eq, PartialEq, Hash, Debug)]
 struct Coordinate {
     x: i16,
@@ -18,6 +30,24 @@ struct Coordinate {
 }
 
 impl Coordinate {
+    fn manhattan_center<'a, T: Iterator<Item = &'a Coordinate>>(all: T) -> Option<Coordinate> {
+        let mut count = 0;
+        let mut sum = (0, 0);
+        for coordinate in all {
+            count += 1;
+            sum.0 += coordinate.x;
+            sum.1 += coordinate.y;
+        }
+        if count > 0 {
+            Some(Coordinate {
+                x: sum.0 / count,
+                y: sum.1 / count,
+            })
+        } else {
+            None
+        }
+    }
+
     fn in_cone_up(&self, other: &Coordinate) -> bool {
         self.y > other.y && (self.x - other.x).abs() <= self.y - other.y
     }
@@ -75,18 +105,18 @@ impl Coordinate {
         (self.x - other.x).abs() + (self.y - other.y).abs()
     }
 
-    fn area(&self, all_coordinates: &HashSet<Coordinate>) -> usize {
+    fn distance_between_all_others<'a, T: Iterator<Item = &'a Coordinate>>(&self, all: T) -> i16 {
+        all.map(|o| self.distance_between(o)).sum()
+    }
+
+    fn expanding_search<F: Fn(&Coordinate, i16) -> bool>(&self, search_condition: F) -> usize {
         let mut area = 0;
         let mut search_distance = 0;
         let mut found = true;
         while found {
             found = false;
             for s in self.coordinates_at_distance(search_distance).iter() {
-                if all_coordinates
-                    .iter()
-                    .filter(|&c| c != self)
-                    .all(|c| c.distance_between(s) > search_distance)
-                {
+                if search_condition(s, search_distance) {
                     area += 1;
                     found = true
                 }
@@ -94,6 +124,15 @@ impl Coordinate {
             search_distance += 1;
         }
         area
+    }
+
+    fn area(&self, all_coordinates: &HashSet<Coordinate>) -> usize {
+        self.expanding_search(|s, search_distance| {
+            all_coordinates
+                .iter()
+                .filter(|&c| c != self)
+                .all(|c| c.distance_between(s) > search_distance)
+        })
     }
 }
 
@@ -125,6 +164,21 @@ mod largest_finite {
     #[test]
     fn puzzle() {
         assert_eq!(largest_finite(include_str!("../input.txt")), 5365);
+    }
+}
+
+#[cfg(test)]
+mod cluster_size {
+    use cluster_size;
+
+    #[test]
+    fn worked_example() {
+        assert_eq!(cluster_size(include_str!("../example.txt"), 32), 16);
+    }
+
+    #[test]
+    fn puzzle() {
+        assert_eq!(cluster_size(include_str!("../input.txt"), 10000), 42513);
     }
 
 }
