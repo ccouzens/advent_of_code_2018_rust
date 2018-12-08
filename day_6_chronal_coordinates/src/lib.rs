@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 pub fn largest_finite(input: &str) -> usize {
-    let coordinates = parse_coordinates(input);
+    let coordinates = Coordinate::parse(input);
 
     coordinates
         .iter()
@@ -12,7 +12,7 @@ pub fn largest_finite(input: &str) -> usize {
 }
 
 pub fn cluster_size(input: &str, within: i16) -> usize {
-    let coordinates = parse_coordinates(input);
+    let coordinates = Coordinate::parse(input);
 
     if let Some(center) = Coordinate::manhattan_center(coordinates.iter()) {
         center.expanding_search(|s, _search_distance| {
@@ -30,6 +30,23 @@ struct Coordinate {
 }
 
 impl Coordinate {
+    fn parse(input: &str) -> HashSet<Self> {
+        input
+            .lines()
+            .flat_map(|line| {
+                let mut parts = line.split(", ");
+                let first = parts.next();
+                let second = parts.next();
+                match (
+                    first.and_then(|v| v.parse().ok()),
+                    second.and_then(|v| v.parse().ok()),
+                ) {
+                    (Some(x), Some(y)) => Some(Coordinate { x, y }),
+                    _ => None,
+                }
+            }).collect()
+    }
+
     fn manhattan_center<'a, T: Iterator<Item = &'a Coordinate>>(all: T) -> Option<Coordinate> {
         let mut count = 0;
         let mut sum = (0, 0);
@@ -134,23 +151,6 @@ impl Coordinate {
                 .all(|c| c.distance_between(s) > search_distance)
         })
     }
-}
-
-fn parse_coordinates(input: &str) -> HashSet<Coordinate> {
-    input
-        .lines()
-        .flat_map(|line| {
-            let mut parts = line.split(", ");
-            let first = parts.next();
-            let second = parts.next();
-            match (
-                first.and_then(|v| v.parse().ok()),
-                second.and_then(|v| v.parse().ok()),
-            ) {
-                (Some(x), Some(y)) => Some(Coordinate { x, y }),
-                _ => None,
-            }
-        }).collect()
 }
 
 #[cfg(test)]
