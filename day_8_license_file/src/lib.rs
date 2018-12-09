@@ -9,6 +9,14 @@ pub fn metadata_sum(input: &str) -> Option<u32> {
     }
 }
 
+pub fn value(input: &str) -> Option<u32> {
+    if let Ok((_rest, node)) = Node::parse(&to_byte_array(input)) {
+        Some(node.value())
+    } else {
+        None
+    }
+}
+
 #[derive(Debug)]
 struct Node {
     children: Vec<Node>,
@@ -22,10 +30,7 @@ impl Node {
             child_count: map_opt!(take!(1), to_num::<usize>)
             >> metadata_count: map_opt!(take!(1), to_num::<usize>)
             >> children: count!( Self::parse, child_count )
-            >> metadata: count!(
-                map_opt!(take!(1), to_num::<u32>),
-                metadata_count
-            )
+            >> metadata: count!( map_opt!(take!(1), to_num::<u32>), metadata_count)
             >> (Self { children, metadata })
         )
     );
@@ -33,6 +38,17 @@ impl Node {
     fn metadata_sum(&self) -> u32 {
         self.metadata.iter().cloned().sum::<u32>()
             + self.children.iter().map(Self::metadata_sum).sum::<u32>()
+    }
+
+    fn value(&self) -> u32 {
+        if self.children.is_empty() {
+            self.metadata_sum()
+        } else {
+            self.metadata
+                .iter()
+                .flat_map(|&i| self.children.get(i as usize - 1).map(Node::value))
+                .sum()
+        }
     }
 }
 
@@ -63,5 +79,19 @@ mod metadata_sum_test {
     fn puzzle() {
         assert_eq!(metadata_sum(include_str!("../input.txt")), Some(41028));
     }
+}
 
+#[cfg(test)]
+mod value_test {
+    use value;
+
+    #[test]
+    fn worked_example() {
+        assert_eq!(value(include_str!("../example.txt")), Some(66));
+    }
+
+    #[test]
+    fn puzzle() {
+        assert_eq!(value(include_str!("../input.txt")), Some(20849));
+    }
 }
