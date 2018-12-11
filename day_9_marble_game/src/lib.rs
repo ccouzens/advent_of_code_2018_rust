@@ -48,9 +48,9 @@ impl GameState {
         } else {
             circle_size - distance
         };
-        let mut right = self.circle.split_off(split_point);
-        right.append(&mut self.circle);
-        self.circle = right;
+        let mut split = self.circle.split_off(split_point);
+        split.append(&mut self.circle);
+        self.circle = split;
     }
 }
 
@@ -92,4 +92,10 @@ mod winning_score_tests {
     fn puzzle() {
         assert_eq!(winning_score(476, 71431), 384205);
     }
+
+    #[test]
+    fn puzzle_part_2() {
+        assert_eq!(winning_score(476, 71431 * 100), 3066307353);
+    }
+
 }
