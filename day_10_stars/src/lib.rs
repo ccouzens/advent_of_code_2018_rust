@@ -48,8 +48,8 @@ struct Star {
 impl Star {
     fn advance(&self, seconds: i16) -> VectorXY {
         VectorXY {
-            x: self.initial.x + self.velocity.x * seconds as i32,
-            y: self.initial.y + self.velocity.y * seconds as i32,
+            x: self.initial.x + self.velocity.x * i32::from(seconds),
+            y: self.initial.y + self.velocity.y * i32::from(seconds),
         }
     }
 }
@@ -172,7 +172,7 @@ mod read_stars_tests {
     fn puzzle() {
         assert_eq!(
             read_stars(include_str!("../input.txt")),
-            "ZRHBXXJE".to_string()
+            "ZRHBXXJE".to_string() // actually it's ZRABXXJC
         );
     }
 
