@@ -158,6 +158,7 @@ named!(
 #[cfg(test)]
 mod read_stars_tests {
     use read_stars;
+    use Stars;
 
     #[test]
     #[ignore]
@@ -173,6 +174,14 @@ mod read_stars_tests {
         assert_eq!(
             read_stars(include_str!("../input.txt")),
             "ZRHBXXJE".to_string() // actually it's ZRABXXJC
+        );
+    }
+
+    #[test]
+    fn puzzle_wait_time() {
+        assert_eq!(
+            Stars::read(include_str!("../input.txt")).bounding_box_minima(),
+            10710
         );
     }
 
