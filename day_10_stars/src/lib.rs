@@ -120,9 +120,9 @@ impl Stars {
         mbox.unwrap_or((0, 0, 0, 0))
     }
 
-    fn bounding_box_size(&self, seconds: i16) -> usize {
+    fn bounding_box_size(&self, seconds: i16) -> u64 {
         let cbox = self.bounding_box(seconds);
-        (cbox.2 - cbox.0) as usize * (cbox.3 - cbox.1) as usize
+        (cbox.2 - cbox.0) as u64 * (cbox.3 - cbox.1) as u64
     }
 
     fn bounding_box_minima(&self) -> i16 {
