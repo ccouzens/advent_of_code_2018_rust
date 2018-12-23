@@ -2,6 +2,5 @@
 name = "day_11_chronal_charge"
 version = "0.1.0"
 authors = ["Chris Couzens <ccouzens@gmail.com>"]
-edition = "2018"
 
 [dependencies]
