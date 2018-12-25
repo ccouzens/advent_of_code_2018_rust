@@ -1,22 +1,19 @@
-pub fn highest_total_square(serial_number: usize, square_size: usize) -> Option<(usize, usize)> {
-    FuelGrid::new(serial_number).best_square(square_size)
+pub fn highest_total_square(
+    serial_number: usize,
+    square_size: usize,
+) -> Option<(i32, usize, usize)> {
+    FuelGrid::new(serial_number).best_square_for_size(square_size)
 }
 
-pub fn highest_variable_square(serial_number: usize) -> Option<(usize, usize, usize)> {
-    let grid = FuelGrid::new(serial_number);
-    (1..=300)
-        .flat_map(|s| grid.best_square(s).map(|(x, y)| (x, y, s)))
-        .max_by_key(|&(x, y, s)| grid.summed_square_tables.box_sum(x, y, s))
+pub fn highest_variable_square(serial_number: usize) -> Option<(i32, usize, usize, usize)> {
+    FuelGrid::new(serial_number).best_square_overall()
 }
 
 struct SummedSquareTable([i32; 301 * 301]);
 
 impl SummedSquareTable {
-    fn index<T>(x: T, y: T) -> usize
-    where
-        usize: std::convert::From<T>,
-    {
-        usize::from(x) * 301 + usize::from(y)
+    fn index(x: usize, y: usize) -> usize {
+        x * 301 + y
     }
 
     fn new(serial_number: usize) -> SummedSquareTable {
@@ -48,13 +45,6 @@ struct FuelCell {
     serial_number: usize,
 }
 
-struct FuelSquare<'a> {
-    x: usize,
-    y: usize,
-    square_size: usize,
-    summed_square_tables: &'a SummedSquareTable,
-}
-
 impl FuelCell {
     fn new(x: usize, y: usize, serial_number: usize) -> Self {
         FuelCell {
@@ -78,15 +68,6 @@ impl FuelCell {
     }
 }
 
-impl<'a> FuelSquare<'a> {
-    fn square_power_level(&self) -> i32 {
-        let x = self.x;
-        let y = self.y;
-        let s = self.square_size;
-        self.summed_square_tables.box_sum(x, y, s)
-    }
-}
-
 struct FuelGrid {
     summed_square_tables: SummedSquareTable,
 }
@@ -98,45 +79,29 @@ impl FuelGrid {
         }
     }
 
-    fn iter_squares(&self, square_size: usize) -> impl Iterator<Item = FuelSquare> {
-        FuelGridSquareIterator {
-            iteration: 0,
-            square_size,
-            summed_square_tables: &self.summed_square_tables,
+    fn best_square_for_size(&self, square_size: usize) -> Option<(i32, usize, usize)> {
+        let mut max = None;
+        let mut best = None;
+        let s = square_size;
+        for x in 1..=301 - s {
+            for y in 1..=301 - s {
+                let current = self.summed_square_tables.box_sum(x, y, s);
+                if max.map_or(true, |m| m < current) {
+                    max = Some(current);
+                    best = Some((x, y));
+                }
+            }
         }
+        max.and_then(|m| best.map(|(x, y)| (m, x, y)))
     }
 
-    fn best_square(&self, square_size: usize) -> Option<(usize, usize)> {
-        self.iter_squares(square_size)
-            .max_by_key(|fc| fc.square_power_level())
-            .map(|fc| (fc.x, fc.y))
-    }
-}
-
-struct FuelGridSquareIterator<'a> {
-    iteration: usize,
-    square_size: usize,
-    summed_square_tables: &'a SummedSquareTable,
-}
-
-impl<'a> Iterator for FuelGridSquareIterator<'a> {
-    type Item = FuelSquare<'a>;
-    fn next(&mut self) -> Option<FuelSquare<'a>> {
-        let square_size = self.square_size;
-        let limit = 301 - square_size;
-        let x = 1 + self.iteration % limit;
-        let y = 1 + self.iteration / limit;
-        self.iteration += 1;
-        if y > limit {
-            None
-        } else {
-            Some(FuelSquare {
-                x,
-                y,
-                square_size,
-                summed_square_tables: self.summed_square_tables,
+    fn best_square_overall(&self) -> Option<(i32, usize, usize, usize)> {
+        (1..=300)
+            .flat_map(|s| {
+                self.best_square_for_size(s)
+                    .map(|(power, x, y)| (power, x, y, s))
             })
-        }
+            .max_by_key(|&(power, _x, _y, _s)| power)
     }
 }
 
@@ -146,17 +111,17 @@ mod highest_3_by_3_total_square_tests {
 
     #[test]
     fn worked_example_1() {
-        assert_eq!(highest_total_square(18, 3), Some((33, 45)));
+        assert_eq!(highest_total_square(18, 3), Some((29, 33, 45)));
     }
 
     #[test]
     fn worked_example_2() {
-        assert_eq!(highest_total_square(42, 3), Some((21, 61)));
+        assert_eq!(highest_total_square(42, 3), Some((30, 21, 61)));
     }
 
     #[test]
     fn puzzle() {
-        assert_eq!(highest_total_square(5034, 3), Some((235, 63)));
+        assert_eq!(highest_total_square(5034, 3), Some((29, 235, 63)));
     }
 }
 
@@ -166,15 +131,15 @@ mod highest_variable_square_size_tests {
 
     #[test]
     fn worked_example_1() {
-        assert_eq!(highest_variable_square(18), Some((90, 269, 16)));
+        assert_eq!(highest_variable_square(18), Some((113, 90, 269, 16)));
     }
     #[test]
     fn worked_example_2() {
-        assert_eq!(highest_variable_square(42), Some((232, 251, 12)));
+        assert_eq!(highest_variable_square(42), Some((119, 232, 251, 12)));
     }
     #[test]
     fn puzzle() {
-        assert_eq!(highest_variable_square(5034), Some((229, 251, 16)));
+        assert_eq!(highest_variable_square(5034), Some((109, 229, 251, 16)));
     }
 
 }
