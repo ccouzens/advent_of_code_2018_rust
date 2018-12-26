@@ -32,6 +32,24 @@ impl Cave {
         &self.rules
     }
 
+    pub fn generation_sum(mut self, generations: i64) -> i64 {
+        let mut pot_counts = (None, None, None);
+        for i in 0..generations {
+            pot_counts = (
+                pot_counts.1,
+                pot_counts.2,
+                Some(self.pots().iter().cloned().sum::<i64>()),
+            );
+            if let (Some(a), Some(b), Some(c)) = pot_counts {
+                if c - b == b - a {
+                    return (generations - i) * (b - a) + c;
+                }
+            }
+            self = self.step();
+        }
+        self.pots().iter().cloned().sum::<i64>()
+    }
+
     pub fn step(mut self) -> Self {
         if let (Some(first), Some(last)) =
             (self.pots().iter().next(), self.pots().iter().rev().next())
@@ -141,10 +159,7 @@ mod worked_example_part_1 {
 
     #[test]
     fn final_sum() {
-        assert_eq!(
-            cave().fast_forward(20).pots().iter().cloned().sum::<i64>(),
-            325
-        );
+        assert_eq!(cave().generation_sum(20), 325);
     }
 }
 
@@ -158,9 +173,11 @@ mod puzzle {
 
     #[test]
     fn twenty_generations() {
-        assert_eq!(
-            cave().fast_forward(20).pots().iter().cloned().sum::<i64>(),
-            3258
-        );
+        assert_eq!(cave().generation_sum(20), 3258);
+    }
+
+    #[test]
+    fn fifty_billion_generations() {
+        assert_eq!(cave().generation_sum(50_000_000_000), 3600000002022);
     }
 }
