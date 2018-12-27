@@ -114,9 +114,7 @@ impl Cart {
     fn update(&mut self, track: &Track) {
         use crate::Direction::{East, North, South, West};
         use crate::IntersectionBehaviour::{Left, Right, Straight};
-        use crate::TrackDirection::{
-            Horizontal, Intersection, PrimaryDiagonal, SecondaryDiagonal, Vertical,
-        };
+        use crate::TrackDirection::{Intersection, PrimaryDiagonal, SecondaryDiagonal};
         self.location = match &self.direction {
             North => (self.location.0, self.location.1 - 1),
             East => (self.location.0 + 1, self.location.1),
@@ -124,42 +122,33 @@ impl Cart {
             West => (self.location.0 - 1, self.location.1),
         };
 
-        match (
-            &self.direction,
+        self.direction = match (
+            self.direction,
             track.tracks.get(&self.location),
             &self.intersection_behaviour,
         ) {
-            (North, Some(&Vertical), _) => {}
-            (North, Some(&PrimaryDiagonal), _) => self.direction = West,
-            (North, Some(&SecondaryDiagonal), _) => self.direction = East,
-            (East, Some(&Horizontal), _) => {}
-            (East, Some(PrimaryDiagonal), _) => self.direction = South,
-            (East, Some(SecondaryDiagonal), _) => self.direction = North,
-            (South, Some(&Vertical), _) => {}
-            (South, Some(&PrimaryDiagonal), _) => self.direction = East,
-            (South, Some(&SecondaryDiagonal), _) => self.direction = West,
-            (West, Some(&Horizontal), _) => {}
-            (West, Some(&PrimaryDiagonal), _) => self.direction = North,
-            (West, Some(&SecondaryDiagonal), _) => self.direction = South,
+            (North, Some(PrimaryDiagonal), _) => West,
+            (North, Some(SecondaryDiagonal), _) => East,
+            (East, Some(PrimaryDiagonal), _) => South,
+            (East, Some(SecondaryDiagonal), _) => North,
+            (South, Some(PrimaryDiagonal), _) => East,
+            (South, Some(SecondaryDiagonal), _) => West,
+            (West, Some(PrimaryDiagonal), _) => North,
+            (West, Some(SecondaryDiagonal), _) => South,
 
-            (_, Some(&Intersection), Straight) => {}
+            (_, Some(Intersection), Straight) => self.direction,
 
-            (North, Some(&Intersection), Left) => self.direction = West,
-            (North, Some(&Intersection), Right) => self.direction = East,
-            (East, Some(&Intersection), Left) => self.direction = North,
-            (East, Some(&Intersection), Right) => self.direction = South,
-            (South, Some(&Intersection), Left) => self.direction = East,
-            (South, Some(&Intersection), Right) => self.direction = West,
-            (West, Some(&Intersection), Left) => self.direction = South,
-            (West, Some(&Intersection), Right) => self.direction = North,
+            (North, Some(Intersection), Left) => West,
+            (North, Some(Intersection), Right) => East,
+            (East, Some(Intersection), Left) => North,
+            (East, Some(Intersection), Right) => South,
+            (South, Some(Intersection), Left) => East,
+            (South, Some(Intersection), Right) => West,
+            (West, Some(Intersection), Left) => South,
+            (West, Some(Intersection), Right) => North,
 
-            (North, Some(&Horizontal), _) => panic!("Cart is meant to be going North!"),
-            (East, Some(&Vertical), _) => panic!("Cart is meant to be going East!"),
-            (South, Some(&Horizontal), _) => panic!("Cart is meant to be going South!"),
-            (West, Some(&Vertical), _) => panic!("Cart is meant to be going West!"),
-
-            (_, None, _) => panic!("Cart derailed!"),
-        }
+            (_, None, _) => self.direction,
+        };
 
         if track.tracks.get(&self.location) == Some(&Intersection) {
             self.intersection_behaviour = match self.intersection_behaviour {
@@ -178,7 +167,7 @@ enum IntersectionBehaviour {
     Right,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 enum Direction {
     North,
     East,
@@ -201,8 +190,6 @@ impl FromStr for Track {
                 let (x, y) = (x as u8, y as u8);
                 use crate::TrackDirection::*;
                 let track_segment = match t {
-                    '|' | '^' | 'v' => Some(Vertical),
-                    '-' | '<' | '>' => Some(Horizontal),
                     '\\' => Some(PrimaryDiagonal),
                     '/' => Some(SecondaryDiagonal),
                     '+' => Some(Intersection),
@@ -219,8 +206,6 @@ impl FromStr for Track {
 
 #[derive(PartialEq)]
 enum TrackDirection {
-    Vertical,          // |
-    Horizontal,        // -
     PrimaryDiagonal,   // \
     SecondaryDiagonal, // /
     Intersection,      // +
