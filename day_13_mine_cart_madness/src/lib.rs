@@ -1,7 +1,5 @@
-use core::cmp::max;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::fmt;
 use std::iter::FromIterator;
 use std::str::FromStr;
 
@@ -191,8 +189,6 @@ enum Direction {
 #[derive(Default)]
 struct Track {
     tracks: HashMap<(u8, u8), TrackDirection>,
-    max_y: u8,
-    max_x: u8,
 }
 
 impl FromStr for Track {
@@ -214,36 +210,10 @@ impl FromStr for Track {
                 };
                 if let Some(segment) = track_segment {
                     track.tracks.insert((x, y), segment);
-                    track.max_x = max(track.max_x, x);
-                    track.max_y = max(track.max_y, y);
                 }
             }
         }
         Ok(track)
-    }
-}
-
-impl fmt::Display for Track {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for y in 0..=self.max_y {
-            for x in 0..=self.max_x {
-                use crate::TrackDirection::*;
-
-                let c = match self.tracks.get(&(x, y)) {
-                    Some(Vertical) => '|',
-                    Some(Horizontal) => '-',
-                    Some(PrimaryDiagonal) => '\\',
-                    Some(SecondaryDiagonal) => '/',
-                    Some(Intersection) => '+',
-                    None => ' ',
-                };
-                write!(f, "{}", c)?;
-            }
-            if y != self.max_y {
-                writeln!(f)?;
-            }
-        }
-        Ok(())
     }
 }
 
@@ -265,14 +235,6 @@ mod worked_example_part_1 {
 
     fn simulation() -> Simulation {
         include_str!("../worked_example/input.txt").parse().unwrap()
-    }
-
-    #[test]
-    fn track() {
-        assert_eq!(
-            simulation().track.to_string(),
-            include_str!("../worked_example/track.txt")
-        );
     }
 
     #[test]
