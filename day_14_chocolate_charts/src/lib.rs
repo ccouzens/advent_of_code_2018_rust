@@ -4,6 +4,27 @@ pub fn list_of_10_scores_after_n(n: usize) -> Vec<u8> {
     kitchen.recipies.iter().skip(n).take(10).cloned().collect()
 }
 
+pub fn score_search(s: &[u8]) -> usize {
+    let mut kitchen = Kitchen::new();
+
+    let check_at = |kitchen: &Kitchen, search_point| {
+        if kitchen.recipies.get(search_point..search_point + s.len()) == Some(s) {
+            return Some(search_point);
+        } else {
+            None
+        }
+    };
+    loop {
+        if let Some(f) = check_at(&kitchen, kitchen.recipies.len().saturating_sub(s.len()))
+            .or_else(|| check_at(&kitchen, kitchen.recipies.len().saturating_sub(s.len() + 1)))
+        {
+            return f;
+        }
+
+        kitchen.step();
+    }
+}
+
 struct Kitchen {
     elf_pointers: [usize; 2],
     recipies: Vec<u8>,
@@ -79,5 +100,34 @@ mod part_1s {
             vec![6, 5, 2, 1, 5, 7, 1, 0, 1, 0]
         );
     }
+}
 
+#[cfg(test)]
+mod part_2s {
+    use crate::score_search;
+
+    #[test]
+    fn worked_example_1() {
+        assert_eq!(score_search(&[5, 1, 5, 8, 9]), 9);
+    }
+
+    #[test]
+    fn worked_example_2() {
+        assert_eq!(score_search(&[0, 1, 2, 4, 5]), 5);
+    }
+
+    #[test]
+    fn worked_example_3() {
+        assert_eq!(score_search(&[9, 2, 5, 1, 0]), 18);
+    }
+
+    #[test]
+    fn worked_example_4() {
+        assert_eq!(score_search(&[5, 9, 4, 1, 4]), 2018);
+    }
+
+    #[test]
+    fn puzzle() {
+        assert_eq!(score_search(&[3, 6, 0, 7, 8, 1]), 20262967);
+    }
 }
