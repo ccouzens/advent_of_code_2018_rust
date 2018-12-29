@@ -1,0 +1,7 @@
+[package]
+name = "day_15_beverage_bandits"
+version = "0.1.0"
+authors = ["Chris Couzens <ccouzens@gmail.com>"]
+edition = "2018"
+
+[dependencies]
