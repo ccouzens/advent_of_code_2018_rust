@@ -421,6 +421,68 @@ mod worked_example_2 {
 }
 
 #[cfg(test)]
+mod worked_example_3 {
+    use crate::Battle;
+
+    fn battle() -> Battle {
+        include_str!("../worked_examples/example_3.txt")
+            .parse()
+            .unwrap()
+    }
+
+    #[test]
+    fn it_has_the_correct_number_of_rounds() {
+        assert_eq!(battle().final_round().round_number, 46);
+    }
+
+    #[test]
+    fn it_has_the_correct_final_health() {
+        assert_eq!(battle().final_round().hit_points_sum(), 859);
+    }
+
+    #[test]
+    fn it_has_the_correct_final_image() {
+        assert_eq!(
+            battle().final_round().to_image().into_vec(),
+            image::load_from_memory(include_bytes!("../worked_examples/example_3_final.png"))
+                .unwrap()
+                .raw_pixels()
+        );
+    }
+}
+
+#[cfg(test)]
+mod worked_example_4 {
+    use crate::Battle;
+
+    fn battle() -> Battle {
+        include_str!("../worked_examples/example_4.txt")
+            .parse()
+            .unwrap()
+    }
+
+    #[test]
+    fn it_has_the_correct_number_of_rounds() {
+        assert_eq!(battle().final_round().round_number, 35);
+    }
+
+    #[test]
+    fn it_has_the_correct_final_health() {
+        assert_eq!(battle().final_round().hit_points_sum(), 793);
+    }
+
+    #[test]
+    fn it_has_the_correct_final_image() {
+        assert_eq!(
+            battle().final_round().to_image().into_vec(),
+            image::load_from_memory(include_bytes!("../worked_examples/example_4_final.png"))
+                .unwrap()
+                .raw_pixels()
+        );
+    }
+}
+
+#[cfg(test)]
 mod puzzle {
     use crate::Battle;
 
