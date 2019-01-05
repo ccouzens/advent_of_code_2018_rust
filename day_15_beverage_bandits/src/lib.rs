@@ -27,6 +27,15 @@ impl Coordinate {
             Coordinate { x, y: y + 1 },
         ]
     }
+
+    fn is_neighbour(self, other: Self) -> bool {
+        match (self.x == other.x, self.y == other.y) {
+            (true, true) => false,
+            (false, false) => false,
+            (true, false) => self.y + 1 == other.y || self.y == other.y + 1,
+            (false, true) => self.x + 1 == other.x || self.x == other.x + 1,
+        }
+    }
 }
 
 impl FighterType {
@@ -66,6 +75,15 @@ impl Fighter {
         }
     }
 
+    fn has_targets(battle: &Battle, id: FighterId) -> Option<bool> {
+        if let Some(fighter) = battle.fighters.get(&id) {
+            let ft = fighter.fighter_type;
+            Some(battle.fighters.values().any({ |f| f.fighter_type != ft }))
+        } else {
+            None
+        }
+    }
+
     fn move_fighter(battle: &mut Battle, id: FighterId) {
         if let Some(fighter) = battle.fighters.get(&id) {
             let view = BattleView::new(&battle, fighter);
@@ -84,17 +102,23 @@ impl Fighter {
                     .fighters
                     .values_mut()
                     .filter(|f| f.fighter_type != fighter_type)
+                    .filter(|f| f.location.is_neighbour(location))
                     .map(|f| (f.location, f)),
             );
-            for c in location.ordered_neighbours().iter() {
-                if let Some(enemy) = enemies.get_mut(c) {
-                    if enemy.health > 3 {
-                        enemy.health -= 3;
-                    } else {
-                        let id = enemy.id;
-                        battle.fighters.remove(&id);
+            if let Some(weakest_health) = enemies.values().map(|f| f.health).min() {
+                for c in location.ordered_neighbours().iter() {
+                    if let Some(enemy) = enemies.get_mut(c) {
+                        if enemy.health != weakest_health {
+                            continue;
+                        }
+                        if enemy.health > 3 {
+                            enemy.health -= 3;
+                        } else {
+                            let id = enemy.id;
+                            battle.fighters.remove(&id);
+                        }
+                        return;
                     }
-                    return;
                 }
             }
         }
@@ -243,6 +267,9 @@ impl Battle {
     pub fn round(mut self) -> Self {
         let turn_order = self.turn_order();
         for &fighter_id in turn_order.iter() {
+            if Fighter::has_targets(&self, fighter_id) == Some(false) {
+                return self;
+            }
             Fighter::move_fighter(&mut self, fighter_id);
             Fighter::attack(&mut self, fighter_id);
         }
@@ -270,6 +297,76 @@ impl Battle {
     pub fn hit_points_sum(&self) -> u32 {
         self.fighters.values().map(|f| u32::from(f.health)).sum()
     }
+}
+
+#[cfg(test)]
+mod worked_example_1 {
+    use crate::Battle;
+
+    fn battle() -> Battle {
+        include_str!("../worked_examples/example_1.txt")
+            .parse()
+            .unwrap()
+    }
+
+    fn battle_at_round(round: u32) -> Battle {
+        let mut battle = battle();
+        while battle.round_number != round {
+            battle = battle.round();
+        }
+        battle
+    }
+
+    #[test]
+    fn it_produces_the_correct_initial_image() {
+        assert_eq!(
+            battle_at_round(0).to_image().into_vec(),
+            image::load_from_memory(include_bytes!("../worked_examples/example_1_0.png"))
+                .unwrap()
+                .raw_pixels()
+        );
+    }
+
+    #[test]
+    fn it_is_correct_on_1st_round() {
+        assert_eq!(
+            battle_at_round(1).to_image().into_vec(),
+            image::load_from_memory(include_bytes!("../worked_examples/example_1_1.png"))
+                .unwrap()
+                .raw_pixels()
+        );
+    }
+
+    #[test]
+    fn it_is_correct_on_2nd_round() {
+        assert_eq!(
+            battle_at_round(2).to_image().into_vec(),
+            image::load_from_memory(include_bytes!("../worked_examples/example_1_2.png"))
+                .unwrap()
+                .raw_pixels()
+        );
+    }
+
+    #[test]
+    fn it_has_the_correct_number_of_rounds() {
+        assert_eq!(battle().final_round().round_number, 47);
+    }
+
+    #[test]
+    fn it_has_the_correct_final_health() {
+        assert_eq!(battle().final_round().hit_points_sum(), 590);
+    }
+
+    #[test]
+    fn it_has_the_correct_final_image() {
+        assert_eq!(
+            battle().final_round().to_image().into_vec(),
+            image::load_from_memory(include_bytes!("../worked_examples/example_1_final.png"))
+                .unwrap()
+                .raw_pixels()
+        );
+    }
+
 }
 
 #[cfg(test)]
@@ -308,13 +405,11 @@ mod worked_example_2 {
     }
 
     #[test]
-    #[ignore]
     fn it_has_the_correct_final_health() {
         assert_eq!(battle().final_round().hit_points_sum(), 982);
     }
 
     #[test]
-    #[ignore]
     fn it_has_the_correct_final_image() {
         assert_eq!(
             battle().final_round().to_image().into_vec(),
@@ -323,5 +418,25 @@ mod worked_example_2 {
                 .raw_pixels()
         );
     }
+}
 
+#[cfg(test)]
+mod puzzle {
+    use crate::Battle;
+
+    fn battle() -> Battle {
+        include_str!("../puzzle.txt").parse().unwrap()
+    }
+
+    #[test]
+    #[ignore]
+    fn it_has_the_correct_number_of_rounds() {
+        assert_eq!(battle().final_round().round_number, 145);
+    }
+
+    #[test]
+    #[ignore]
+    fn it_has_the_correct_final_health() {
+        assert_eq!(battle().final_round().hit_points_sum(), 2375);
+    }
 }
