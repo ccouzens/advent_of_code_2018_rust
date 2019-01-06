@@ -1,5 +1,7 @@
 extern crate image;
 use core::cmp::max;
+use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::iter::FromIterator;
@@ -35,6 +37,18 @@ impl Coordinate {
             (true, false) => self.y + 1 == other.y || self.y == other.y + 1,
             (false, true) => self.x + 1 == other.x || self.x == other.x + 1,
         }
+    }
+}
+
+impl Ord for Coordinate {
+    fn cmp(&self, other: &Coordinate) -> Ordering {
+        (self.y, self.x).cmp(&(other.y, other.x))
+    }
+}
+
+impl PartialOrd for Coordinate {
+    fn partial_cmp(&self, other: &Coordinate) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -86,7 +100,7 @@ impl Fighter {
 
     fn move_fighter(battle: &mut Battle, id: FighterId) {
         if let Some(fighter) = battle.fighters.get(&id) {
-            let view = BattleView::new(&battle, fighter);
+            let view = BattleMovement::new(&battle, fighter);
             if let Some(fighter) = battle.fighters.get_mut(&id) {
                 fighter.location = view.new_location();
             }
@@ -135,17 +149,17 @@ pub struct Battle {
     fighters: HashMap<FighterId, Fighter>,
 }
 
-pub struct BattleView {
+pub struct BattleMovement {
     open_tiles: HashSet<Coordinate>,
     enemies: HashSet<Coordinate>,
     position: Coordinate,
 }
 
-impl BattleView {
+impl BattleMovement {
     fn new(battle: &Battle, current_fighter: &Fighter) -> Self {
         let fighter_locations: HashSet<Coordinate> =
             battle.fighters.values().map(|f| f.location).collect();
-        BattleView {
+        BattleMovement {
             open_tiles: HashSet::from_iter(
                 battle
                     .caverns
@@ -169,21 +183,35 @@ impl BattleView {
     }
 
     fn new_location(&self) -> Coordinate {
-        let ordered_neighbours = self.position.ordered_neighbours();
-        if ordered_neighbours
+        let immediate_moves = self.position.ordered_neighbours();
+        if immediate_moves
             .iter()
             .any({ |c| self.enemies.contains(&c) })
         {
             return self.position;
         }
+
+        let targets: BTreeSet<Coordinate> = self
+            .enemies
+            .iter()
+            .flat_map(|&c| {
+                let neighbours = c.ordered_neighbours();
+                neighbours
+                    .into_iter()
+                    .filter(|&n| self.open_tiles.contains(n))
+                    .cloned()
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
         let mut unvisited_set = self.open_tiles.clone();
-        let mut current_nodes = [
+        let mut current_nodes_ordered = [
             HashSet::new(),
             HashSet::new(),
             HashSet::new(),
             HashSet::new(),
         ];
-        for (working_nodes, &c) in current_nodes.iter_mut().zip(ordered_neighbours.iter()) {
+        for (working_nodes, &c) in current_nodes_ordered.iter_mut().zip(immediate_moves.iter()) {
             if unvisited_set.remove(&c) {
                 working_nodes.insert(c);
             }
@@ -191,13 +219,21 @@ impl BattleView {
         let mut expanded = true;
         while expanded {
             expanded = false;
-            for (working_nodes, &c) in current_nodes.iter_mut().zip(ordered_neighbours.iter()) {
+            for target in targets.iter() {
+                for (working_nodes, &initial_move) in
+                    current_nodes_ordered.iter().zip(immediate_moves.iter())
+                {
+                    if working_nodes.contains(target) {
+                        return initial_move;
+                    }
+                }
+            }
+
+            for working_nodes in current_nodes_ordered.iter_mut() {
                 let mut new_working_nodes = HashSet::new();
                 for working_node in working_nodes.iter() {
                     for n in working_node.ordered_neighbours().iter().cloned() {
-                        if self.enemies.contains(&n) {
-                            return c;
-                        } else if unvisited_set.remove(&n) {
+                        if unvisited_set.remove(&n) {
                             new_working_nodes.insert(n);
                             expanded = true
                         }
@@ -216,13 +252,13 @@ impl FromStr for Battle {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut battle = Battle::default();
         for (line, line_number) in s.lines().filter(|&l| !l.is_empty()).zip(0..) {
+            battle.dimensions.y = max(battle.dimensions.y, line_number);
             for (c, col_number) in line.chars().zip(0..) {
                 let coord = Coordinate {
                     x: col_number,
                     y: line_number,
                 };
                 battle.dimensions.x = max(battle.dimensions.x, coord.x);
-                battle.dimensions.y = max(battle.dimensions.y, coord.y);
                 if c != '#' {
                     battle.caverns.insert(coord);
                 }
@@ -553,14 +589,23 @@ mod puzzle {
     }
 
     #[test]
-    #[ignore]
-    fn it_has_the_correct_number_of_rounds() {
-        assert_eq!(battle().final_round().round_number, 145);
+    fn it_produces_the_correct_initial_image() {
+        battle().to_image().save("puzzle/0.png").unwrap();
+
+        assert_eq!(
+            battle().to_image().into_vec(),
+            image::load_from_memory(include_bytes!("../puzzle/0.png"))
+                .unwrap()
+                .raw_pixels()
+        );
     }
 
     #[test]
-    #[ignore]
-    fn it_has_the_correct_final_health() {
-        assert_eq!(battle().final_round().hit_points_sum(), 2375);
+    fn it_has_the_correct_outcome() {
+        let final_round = battle().final_round();
+        assert_eq!(
+            (final_round.round_number, final_round.hit_points_sum()),
+            (149, 2326)
+        );
     }
 }
