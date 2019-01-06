@@ -65,9 +65,11 @@ impl FighterType {
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 struct FighterId(u32, u32);
 
+#[derive(Clone)]
 struct Fighter {
     location: Coordinate,
     health: u8,
+    attack_power: u8,
     id: FighterId,
     fighter_type: FighterType,
 }
@@ -84,6 +86,7 @@ impl Fighter {
         Fighter {
             location,
             health: 200,
+            attack_power: 3,
             id,
             fighter_type,
         }
@@ -111,6 +114,7 @@ impl Fighter {
         if let Some(fighter) = battle.fighters.get(&id) {
             let fighter_type = fighter.fighter_type;
             let location = fighter.location;
+            let attack_power = fighter.attack_power;
             let mut enemies: HashMap<Coordinate, &mut Fighter> = HashMap::from_iter(
                 battle
                     .fighters
@@ -125,8 +129,8 @@ impl Fighter {
                         if enemy.health != weakest_health {
                             continue;
                         }
-                        if enemy.health > 3 {
-                            enemy.health -= 3;
+                        if enemy.health > attack_power {
+                            enemy.health -= attack_power;
                         } else {
                             let id = enemy.id;
                             battle.fighters.remove(&id);
@@ -141,7 +145,7 @@ impl Fighter {
 
 type Caverns = std::collections::HashSet<Coordinate>;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Battle {
     round_number: u32,
     dimensions: Coordinate,
@@ -330,8 +334,41 @@ impl Battle {
         self
     }
 
+    fn elf_count(&self) -> usize {
+        self.fighters
+            .values()
+            .filter(|f| f.fighter_type == FighterType::Elf)
+            .count()
+    }
+
+    pub fn final_round_no_elf_losses(mut self) -> Option<Self> {
+        let elf_count = self.elf_count();
+        while !self.complete() {
+            self = self.round();
+            if elf_count != self.elf_count() {
+                return None;
+            }
+        }
+        Some(self)
+    }
+
     pub fn hit_points_sum(&self) -> u32 {
         self.fighters.values().map(|f| u32::from(f.health)).sum()
+    }
+
+    pub fn super_powered_elves(self) -> Option<Self> {
+        for ap in 4..=200 {
+            let mut candidate_battle = self.clone();
+            for fighter in candidate_battle.fighters.values_mut() {
+                if fighter.fighter_type == FighterType::Elf {
+                    fighter.attack_power = ap;
+                }
+            }
+            if let Some(successful_battle) = candidate_battle.final_round_no_elf_losses() {
+                return Some(successful_battle);
+            }
+        }
+        None
     }
 }
 
@@ -403,6 +440,14 @@ mod worked_example_1 {
         );
     }
 
+    #[test]
+    fn it_gives_the_correct_outcome_for_superpowered_elves() {
+        let super_powered = battle().super_powered_elves().unwrap();
+        assert_eq!(
+            (super_powered.round_number, super_powered.hit_points_sum()),
+            (29, 172)
+        );
+    }
 }
 
 #[cfg(test)]
@@ -590,8 +635,6 @@ mod puzzle {
 
     #[test]
     fn it_produces_the_correct_initial_image() {
-        battle().to_image().save("puzzle/0.png").unwrap();
-
         assert_eq!(
             battle().to_image().into_vec(),
             image::load_from_memory(include_bytes!("../puzzle/0.png"))
@@ -606,6 +649,15 @@ mod puzzle {
         assert_eq!(
             (final_round.round_number, final_round.hit_points_sum()),
             (149, 2326)
+        );
+    }
+
+    #[test]
+    fn it_gives_the_correct_outcome_for_superpowered_elves() {
+        let super_powered = battle().super_powered_elves().unwrap();
+        assert_eq!(
+            (super_powered.round_number, super_powered.hit_points_sum()),
+            (48, 1268)
         );
     }
 }
