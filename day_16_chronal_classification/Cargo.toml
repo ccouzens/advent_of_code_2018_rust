@@ -1,0 +1,7 @@
+[package]
+name = "day_16_chronal_classification"
+version = "0.1.0"
+authors = ["Chris Couzens <ccouzens@gmail.com>"]
+edition = "2018"
+
+[dependencies]
