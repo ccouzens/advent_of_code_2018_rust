@@ -26,13 +26,12 @@ fn test_accumulative_fuel_required() {
     assert_eq!(accumulative_fuel_required(100756), 50346);
 }
 
-fn main() -> Result<(), std::num::ParseIntError> {
+fn main() {
     let input = include_str!("../input");
-    let mut sum = 0;
-    for line in input.lines() {
-        let mass: u64 = line.parse()?;
-        sum += accumulative_fuel_required(mass);
-    }
-    println!("{}", sum);
-    Ok(())
+    let sum = input
+        .lines()
+        .map(|line| line.parse::<u64>())
+        .map(|rmass| rmass.map(accumulative_fuel_required))
+        .sum::<Result<u64, _>>();
+    println!("{:?}", sum);
 }
