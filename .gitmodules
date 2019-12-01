@@ -1,3 +1,3 @@
 [submodule "day_10_stars/tesseract-rs"]
-	path = day_10_stars/tesseract
+	path = 2018/day_10_stars/tesseract
 	url = https://github.com/ccouzens/tesseract-rs.git
